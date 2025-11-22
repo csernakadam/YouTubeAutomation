@@ -115,7 +115,7 @@ def generate_images(client: genai.Client, opportunity_list: list, output_path: s
 
         try:
             result = client.models.generate_images(
-                model='imagen-4.0-fast-generate-001',  # Using fast model for quick generation
+                model='imagen-4.0-generate-001',  # Using fast model for quick generation, OR imagen-4.0-generate-001
                 prompt=full_prompt,
                 config=dict(
                     number_of_images=1,
@@ -178,8 +178,8 @@ def stitch_video(image_paths: dict, output_path: str, audio_file_path: str = Non
             audio_clip = AudioFileClip(audio_file_path)
 
             # Set the video duration to match the audio clip length
-            final_clip = final_clip.set_duration(audio_clip.duration)
-            final_clip = final_clip.set_audio(audio_clip)
+            final_clip = final_clip.with_duration(audio_clip.duration)
+            final_clip = final_clip.with_audio(audio_clip)
 
         # 4. Write the final video file
         final_clip.write_videofile(
