@@ -53,8 +53,12 @@ def generate_opportunities(client: genai.Client) -> list:
 
     prompt = """
     Generate a list of exactly 5 distinct, creative, and actionable money-making opportunities 
-    that could be suitable for a YouTube Short video focusing on AI or digital world.
-    Each opportunity should be a short, compelling title/concept.
+    that are highly suitable for a fast-paced YouTube Short video.
+    
+    The final list of 5 opportunities MUST be structured as follows to maximize novelty:
+    1.  **Two (2) Cutting-Edge/Trending Opportunities:** (Current, cutting-edge concepts using recent AI tools, blockchain, or new digital platforms).
+    2.  **Two (2) Hidden/Niche Opportunities:** (Highly specialized, less saturated, or obscure digital services).
+    3.  **One (1) Popular/Proven Opportunity:** (A single, well-known, reliable side hustle or digital service).
     """
 
     opportunity_schema = types.Schema(
@@ -155,17 +159,25 @@ def stitch_video(image_paths: dict, output_path: str, audio_file_path: str = Non
     final_output_path = os.path.join(output_path, output_filename)
     print(f"\n🎬 Step 3: Stitching assets into video: {final_output_path}...")
 
-    # Define the duration for each image slide (6 seconds in your code)
-    # NOTE: This duration will be overridden if an audio file is provided.
-    clip_duration = 6
-    image_files = list(image_paths.values())
+    base_clip_duration = 6
+
+    # Use the items of the dictionary directly for the loop: (opp_name, file_path)
+    image_items = list(image_paths.items())  # Use items() for consistent order
+
+    clips = []
 
     try:
         # 1. Create a video clip object for each image
-        clips = []
-        for img_file in image_files:
-            # We must set a duration, even if it's overridden later
-            clip = ImageClip(img_file, duration=clip_duration)
+        for i, (opportunity_name, img_file) in enumerate(image_items):
+
+            # Determine duration for the current clip
+            current_duration = base_clip_duration
+            if i == 0:
+                current_duration += 3
+                print(f"   Adjusted first image duration to {current_duration}s.")
+
+            # Create the clip
+            clip = ImageClip(img_file, duration=current_duration)
             clips.append(clip)
 
         # 2. Concatenate all individual clips into one final video clip
@@ -175,7 +187,9 @@ def stitch_video(image_paths: dict, output_path: str, audio_file_path: str = Non
         if audio_file_path and os.path.exists(audio_file_path):
             audio_clip = AudioFileClip(audio_file_path)
 
-            # Set the video duration to match the audio clip length
+            # These lines are critical: the video duration MUST match the audio length
+            # If the audio is shorter than the sum of clip durations, it will cut off.
+            # If the audio is longer, the video will end before the audio.
             final_clip = final_clip.with_duration(audio_clip.duration)
             final_clip = final_clip.with_audio(audio_clip)
 
@@ -209,16 +223,20 @@ def generate_youtube_content(client: genai.Client, opportunity_list: list) -> di
 
     prompt = f"""
     You are a professional content creator crafting a YouTube Short video about money-making opportunities.
+    INSTRUCTION: The following 5 opportunities must be referenced by their number (1, 2, 3, 4, 5) in the transcript.
     The video features these 5 opportunities:
     {opportunities_str}
 
     Based on these, generate the following in English, formatted as a JSON object:
     1.  **A catchy YouTube Short title** (under 100 characters).
     2.  **A concise YouTube Short description** (under 500 characters), including a strong call to action and relevant hashtags.
-    3.  **A comma-separated list of relevant YouTube tags** (e.g., "makemoney, sidehustle, easycash").
-    4.  **A detailed video transcript script** (under 500 characters). The script must be energetic and clear, adhering strictly to these SSML rules:
+    3.  **A comma-separated list of relevant YouTube tags**.
+    4.  **A detailed video transcript script** (approximately **80–100 words total**). The script must be energetic and clear, adhering strictly to these SSML rules:
+        * The **introduction/hook** should be limited to **9–12 words**.
+        * Each of the five individual topics should be concise, around **12–15 words each**.
         * The entire transcript MUST be wrapped in **<speak></speak> tags**.
-        * Use **<break time="350ms"/>** tags to add short, natural pauses after hooks or key transitions.
+        * Use **<break strength="weak"/>** tags to add short, natural pauses within a sentence.
+        * Use **<break strength="strong"/>** tags to create a distinct, segment-level pause: **one must occur immediately after the introduction/hook,** and **one must occur between each of the 5 money-making opportunities.**
         * The script must start with an engaging hook and end with a call to action.
     """
 
