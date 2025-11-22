@@ -173,7 +173,7 @@ def stitch_video(image_paths: dict, output_path: str, audio_file_path: str = Non
             # Determine duration for the current clip
             current_duration = base_clip_duration
             if i == 0:
-                current_duration += 3
+                current_duration += 6
                 print(f"   Adjusted first image duration to {current_duration}s.")
 
             # Create the clip
