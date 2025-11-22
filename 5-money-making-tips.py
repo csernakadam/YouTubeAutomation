@@ -53,8 +53,8 @@ def generate_opportunities(client: genai.Client) -> list:
 
     prompt = """
     Generate a list of exactly 5 distinct, creative, and actionable money-making opportunities 
-    that could be suitable for a YouTube Short video. Each opportunity should be a short, compelling 
-    title/concept.
+    that could be suitable for a YouTube Short video focusing on AI or digital world.
+    Each opportunity should be a short, compelling title/concept.
     """
 
     opportunity_schema = types.Schema(
@@ -115,7 +115,7 @@ def generate_images(client: genai.Client, opportunity_list: list, output_path: s
 
         try:
             result = client.models.generate_images(
-                model='imagen-4.0-generate-001',  # Using fast model for quick generation, OR imagen-4.0-generate-001
+                model='imagen-4.0-generate-001',  # imagen-4.0-fast-generate-001 , OR imagen-4.0-generate-001
                 prompt=full_prompt,
                 config=dict(
                     number_of_images=1,
@@ -166,8 +166,6 @@ def stitch_video(image_paths: dict, output_path: str, audio_file_path: str = Non
         for img_file in image_files:
             # We must set a duration, even if it's overridden later
             clip = ImageClip(img_file, duration=clip_duration)
-            # Use vfx.resize for better compatibility
-            # clip = clip.fx(vfx.resize, width=1080)
             clips.append(clip)
 
         # 2. Concatenate all individual clips into one final video clip
@@ -218,7 +216,10 @@ def generate_youtube_content(client: genai.Client, opportunity_list: list) -> di
     1.  **A catchy YouTube Short title** (under 100 characters).
     2.  **A concise YouTube Short description** (under 500 characters), including a strong call to action and relevant hashtags.
     3.  **A comma-separated list of relevant YouTube tags** (e.g., "makemoney, sidehustle, easycash").
-    4.  **A detailed video transcript script** for the entire 5-opportunity video (under 500 characters). The script must be energetic and clear. For each opportunity, provide 1-2 sentences of introduction and 2-3 sentences of explanation. The script should start with an engaging hook and end with a call to action.
+    4.  **A detailed video transcript script** (under 500 characters). The script must be energetic and clear, adhering strictly to these SSML rules:
+        * The entire transcript MUST be wrapped in **<speak></speak> tags**.
+        * Use **<break time="350ms"/>** tags to add short, natural pauses after hooks or key transitions.
+        * The script must start with an engaging hook and end with a call to action.
     """
 
     youtube_content_schema = types.Schema(
@@ -256,7 +257,6 @@ def generate_youtube_content(client: genai.Client, opportunity_list: list) -> di
 # --- Step 5: Generate Audio from Transcript ---
 
 def generate_audio(transcript_text: str, output_path: str, output_filename: str = "voiceover.mp3") -> str:
-    # ... (function body remains the same) ...
     """
     Uses Google Cloud Text-to-Speech to generate an audio file from the transcript.
     """
@@ -265,11 +265,11 @@ def generate_audio(transcript_text: str, output_path: str, output_filename: str 
         return ""
 
     client = texttospeech.TextToSpeechClient()
-    synthesis_input = texttospeech.SynthesisInput(text=transcript_text)
+    synthesis_input = texttospeech.SynthesisInput(ssml=transcript_text)
 
     voice = texttospeech.VoiceSelectionParams(
         language_code="en-US",
-        name="en-US-Wavenet-D",
+        name="en-US-Studio-Q",
         ssml_gender=texttospeech.SsmlVoiceGender.MALE
     )
 
