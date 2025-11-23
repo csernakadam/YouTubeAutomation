@@ -17,16 +17,16 @@ except Exception as e:
 
 # --- CONFIGURATION CONSTANTS ---
 # Topic for the cartoon. This is the easily modifiable part.
-CARTOON_TOPIC = "Hogyan kezeli Kisautó a nagy frusztrációt, ha elakad a sárban"
-IMAGE_COUNT = 6
-TRANSCRIPT_DURATION_SECONDS = 60  # Target duration for a ~1-minute short
+CARTOON_TOPIC = "Hogyan tanulja meg Vrummi, mi az a türelem a sorban állásnál?"
+IMAGE_COUNT = 9
+TRANSCRIPT_WORDS_COUNT = 400  # 120-150 per minute
 # --- Set the Target Language here ---
 TARGET_LANGUAGE = "Hungarian"
 # ------------------------------------
 # Stílus: 3D render, Claymation hatás, konzisztens főszereplővel (a kisautó).
 DISNEY_STYLE_PROMPT = (
     "3D render, Claymation style, bright volumetric lighting, smooth texture, hyper-detailed, "
-    "pastel colors, character is an adorable **small, round, bright blue car with huge friendly headlights and a smiling grille** 3D mascot, "
+    "pastel colors, character is an adorable **small, round, bright blue car with huge friendly headlights and a smiling grille** 3D mascot, called Vrummi"
     "cinematic depth of field, **extremely high quality**, vertical composition."
 )
 
@@ -147,7 +147,7 @@ def generate_images(client: genai.Client, scene_list: list, output_path: str) ->
                 config=dict(
                     number_of_images=1,
                     output_mime_type="image/jpeg",
-                    aspect_ratio="9:16",
+                    aspect_ratio="16:9",
                 )
             )
 
@@ -171,7 +171,7 @@ def generate_images(client: genai.Client, scene_list: list, output_path: str) ->
 # --- Step 3: Generate YouTube Content and Transcript (Gemini) ---
 
 def generate_youtube_content(client: genai.Client, scene_list: list, topic: str, target_language: str,
-                             duration_seconds: int) -> dict:
+                             word_count: int) -> dict:
     """Generates the content (title, description, tags) and the full Hungarian transcript."""
 
     if not scene_list:
@@ -187,16 +187,19 @@ def generate_youtube_content(client: genai.Client, scene_list: list, topic: str,
     You are a professional content writer creating a funny, educational, {target_language} cartoon short script 
     about the topic: **"{topic}"**. The video will use {len(scene_list)} sequential scenes.
 
+    INSTRUCTION: The final **TRANSCRIPT MUST contain ONLY the continuous spoken story**.
+    **DO NOT INCLUDE** any speaker labels, character names, or directional cues like "NARRÁTOR:", "KISAUTÓ:", "[hanghatás]", or similar labels within the <speak> tags. The goal is a seamless story reading.
     Based on the following {len(scene_list)} scene descriptions, generate the required output as a JSON object:
 
     Scene Descriptions:
     {scenes_str}
 
-    1.  **A catchy YouTube Short title** in {target_language} (under 100 characters).
-    2.  **A concise YouTube Short description** in {target_language} (under 500 characters), including a strong call to action and relevant hashtags.
-    3.  **A comma-separated list of relevant YouTube tags** in {target_language}.
-    4.  **A detailed video transcript script** in {target_language}. The script must be funny, clear, and designed to last approximately **{duration_seconds} seconds** when spoken. It must strictly adhere to these SSML rules:
+    1.  **A catchy YouTube video title** in {target_language} (under 100 characters).
+    2.  **A concise YouTube video description** in {target_language}, including a strong call to action and relevant hashtags (~ 700 characters).
+    3.  **A comma-separated list of relevant YouTube tags** in {target_language} (under 500 characters).
+    4.  **A detailed video transcript script** in {target_language}. The script must be funny, clear, and designed to have approximately **{word_count} words. It must strictly adhere to these SSML rules:
         * The entire transcript MUST be wrapped in **<speak></speak> tags**.
+        * Bármilyen hangutánzó szót (pl. járműzaj, eséshang, ütközés) TILOS szimplán leírni. Ehelyett **fonetikusan** kell átírni a szót, ahogy azt a legtermészetesebben mondanánk, mintha valós beszéd lenne (pl. "Vrumm" helyett "Vürrüm", "Bumm" helyett "Bámm"). Ez a kulcsa a természetes hangzásnak!
         * The script must be split into {len(scene_list)} main segments, one for each scene, ensuring smooth transitions.
         * Use **<break strength="strong"/>** tags to create a distinct, segment-level pause: **one must occur between each of the {len(scene_list)} segments.**
         * Ensure the script starts with an engaging hook and ends with a clear, funny lesson or call to action.
@@ -269,7 +272,6 @@ def generate_audio(transcript_text: str, output_path: str, target_language: str,
     voice = texttospeech.VoiceSelectionParams(
         language_code=config["code"],
         name=config["name"],
-        ssml_gender=config["gender"]
     )
 
     audio_config = texttospeech.AudioConfig(
@@ -317,7 +319,7 @@ if __name__ == "__main__":
 
     # --- 4. YouTube Content Generation & Metadata Save (in Hungarian) ---
     youtube_content = generate_youtube_content(
-        CLIENT, scenes, CARTOON_TOPIC, TARGET_LANGUAGE, TRANSCRIPT_DURATION_SECONDS
+        CLIENT, scenes, CARTOON_TOPIC, TARGET_LANGUAGE, TRANSCRIPT_WORDS_COUNT
     )
     transcript = youtube_content.get('transcript', '')
 
@@ -332,3 +334,5 @@ if __name__ == "__main__":
 
     print("\n\n🎉 HUNGARIAN CARTOON STORYBOARD PIPELINE COMPLETE! 🎉")
     print(f"Assets (6 Disney-style images, Hungarian transcript, Hungarian voiceover) are in: {output_dir}")
+
+
