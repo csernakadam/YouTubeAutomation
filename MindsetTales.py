@@ -200,7 +200,7 @@ def generate_images(client: genai.Client, scene_list: list, output_path: str, st
                     number_of_images=1,
                     output_mime_type="image/jpeg",
                     aspect_ratio="16:9",
-                    add_watermark=False,
+                    #add_watermark=False,
                     #seed=image_seed,
                     image_size="2K"
 
