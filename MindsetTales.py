@@ -25,10 +25,10 @@ class Config:
     TARGET_LANGUAGE = "English"
 
     # Total number of images/scenes to generate.
-    IMAGE_COUNT = 1
+    IMAGE_COUNT = 2
 
     # Total word count for the transcript.
-    TRANSCRIPT_TOTAL_WORDS = 200
+    TRANSCRIPT_TOTAL_WORDS = 600
 
     # Transcript content structure percentages (MUST sum to 1.0 or 100%).
     CONTENT_RATIOS = {
@@ -201,7 +201,7 @@ def generate_images(client: genai.Client, scene_list: list, output_path: str, st
                     output_mime_type="image/jpeg",
                     aspect_ratio="16:9",
                     add_watermark=False,
-                    seed=image_seed,
+                    #seed=image_seed,
                     image_size="2K"
 
                 )
@@ -271,6 +271,7 @@ def generate_youtube_content(client: genai.Client, scene_list: list, topic: str,
         * The entire transcript MUST be wrapped in **<speak></speak> tags**.
         * The script must be split into segments reflecting the four structural parts.
         * Use **<break strength="strong"/>** tags to create distinct pauses: **one must occur between each of the four main structural parts.**
+        * **For natural, dramatic storytelling pacing within the HOOK and STORY sections, insert `<break strength="medium"/>` tags after sentences where a slight, deliberate pause is needed, beyond what a simple period provides.**
     """
 
     youtube_content_schema = types.Schema(
