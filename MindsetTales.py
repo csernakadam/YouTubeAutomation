@@ -2,6 +2,7 @@ import os
 import io
 import json
 import re
+import time
 from google import genai
 from google.genai import types
 from google.cloud import texttospeech
@@ -24,10 +25,10 @@ class Config:
     TARGET_LANGUAGE = "English"
 
     # Total number of images/scenes to generate.
-    IMAGE_COUNT = 9
+    IMAGE_COUNT = 1
 
     # Total word count for the transcript.
-    TRANSCRIPT_TOTAL_WORDS = 400
+    TRANSCRIPT_TOTAL_WORDS = 200
 
     # Transcript content structure percentages (MUST sum to 1.0 or 100%).
     CONTENT_RATIOS = {
@@ -40,7 +41,7 @@ class Config:
     # ----------------------------------------------------
     # --- VISUAL STYLE SETTINGS (Locked) ---
     # ----------------------------------------------------
-    # New parameter for image generation consistency (Seed).
+    # Parameter for image generation consistency (Seed).
     IMAGE_SEED = 4444
 
     VISUAL_STYLE_PROMPT = (
@@ -165,14 +166,17 @@ def generate_storyboard_descriptions(client: genai.Client, topic: str, count: in
 
 def generate_images(client: genai.Client, scene_list: list, output_path: str, style_prompt: str,
                     image_seed: int) -> dict:
-    """Uses the Imagen model to generate an image for each scene, locking the style with a seed."""
+    """
+    Uses the Imagen model to generate an image for each scene, locking the style with a seed
+    and enforcing a rate limit of 10 pictures per minute (1 picture every 6 seconds).
+    """
 
     if not scene_list:
         return {}
 
     image_paths = {}
 
-    print(f"\n🎨 Step 2: Generating {len(scene_list)} images with custom style (Seed: {image_seed})...")
+    print(f"\n🎨 Step 2: Generating {len(scene_list)} images (Rate Limit: 10/min)...")
 
     for i, scene_description in enumerate(scene_list):
 
@@ -182,6 +186,12 @@ def generate_images(client: genai.Client, scene_list: list, output_path: str, st
         # Combine scene-specific description with the fixed style prompt
         full_prompt = f"{english_scene}. {style_prompt}"
 
+        # Delay execution to stay under the 10 pictures/minute rate limit (1 image every 6 seconds)
+        if i > 0:
+            delay_seconds = 6
+            print(f"   ⏸️ Waiting {delay_seconds} seconds before image generation {i + 1}...")
+            time.sleep(delay_seconds)
+
         try:
             result = client.models.generate_images(
                 model='imagen-4.0-generate-001',
@@ -190,9 +200,10 @@ def generate_images(client: genai.Client, scene_list: list, output_path: str, st
                     number_of_images=1,
                     output_mime_type="image/jpeg",
                     aspect_ratio="16:9",
-                    seed=image_seed,
                     add_watermark=False,
+                    seed=image_seed,
                     image_size="2K"
+
                 )
             )
 
@@ -367,8 +378,8 @@ if __name__ == "__main__":
     print(f"Scenes: {Config.IMAGE_COUNT}")
     print(f"Total Words: {Config.TRANSCRIPT_TOTAL_WORDS}")
     print(f"Image Seed: {Config.IMAGE_SEED} (Locked)")
+    print(f"Rate Limit: 10 images per minute")
     print(f"Structure: {Config.CONTENT_RATIOS}")
-    print(f"Style: {Config.VISUAL_STYLE_PROMPT[:50]}...")
     print("--------------------------------------------\n")
 
     # 1. Setup Environment and Output Directory
@@ -391,7 +402,7 @@ if __name__ == "__main__":
         scenes,
         output_dir,
         Config.VISUAL_STYLE_PROMPT,
-        Config.IMAGE_SEED  # <-- Passing the locked seed
+        Config.IMAGE_SEED
     )
     if len(image_map) != len(scenes):
         print("\n⚠️ Warning: Did not generate all images. Proceeding with available assets.")
